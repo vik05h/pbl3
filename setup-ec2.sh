@@ -26,14 +26,16 @@ echo "[Step 1/7] Updating package repositories and installing core packages..."
 if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
     # Amazon Linux 2023 / RHEL family
     sudo dnf update -y
-    sudo dnf install -y \
-        curl \
+    # Note: Do not specify 'curl' because 'curl-minimal' is preinstalled on AL2023
+    sudo dnf install -y --allowerasing \
         wget \
         git \
         tar \
         gzip \
         docker \
-        java-17-amazon-corretto-devel || sudo dnf install -y java-17-openjdk-devel
+        fontconfig \
+        freetype \
+        java-17-amazon-corretto-devel || sudo dnf install -y --allowerasing java-17-amazon-corretto
 elif [[ "${OS_ID}" =~ (ubuntu|debian) ]]; then
     # Ubuntu / Debian family
     export DEBIAN_FRONTEND=noninteractive
@@ -68,8 +70,8 @@ echo "[Step 3/7] Installing Jenkins LTS..."
 if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
     sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
     sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
-    sudo dnf upgrade -y
-    sudo dnf install -y jenkins
+    sudo dnf upgrade -y --allowerasing
+    sudo dnf install -y --allowerasing jenkins
 elif [[ "${OS_ID}" =~ (ubuntu|debian) ]]; then
     sudo mkdir -p /usr/share/keyrings
     curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
@@ -86,28 +88,13 @@ echo "[Step 4/7] Installing Aqua Security Trivy..."
 if command -v trivy &>/dev/null; then
     echo "Trivy is already installed: $(trivy --version | head -n 1)"
 else
-    if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
-        cat << 'EOF' | sudo tee /etc/yum.repos.d/trivy.repo
-[trivy]
-name=Trivy repository
-baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://aquasecurity.github.io/trivy-repo/rpm/public.key
-EOF
-        sudo dnf install -y trivy || {
-            echo "Falling back to standalone Trivy installer..."
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-        }
-    else
-        sudo mkdir -p /etc/apt/keyrings
-        curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/trivy.gpg
-        echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-        sudo apt-get update -y && sudo apt-get install -y trivy || {
-            echo "Falling back to standalone Trivy installer..."
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-        }
-    fi
+    echo "Installing Trivy via official secure installer..."
+    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+fi
+
+# Ensure trivy is symlinked to /usr/bin for non-interactive Jenkins shells
+if [ -f /usr/local/bin/trivy ] && [ ! -f /usr/bin/trivy ]; then
+    sudo ln -sf /usr/local/bin/trivy /usr/bin/trivy
 fi
 
 # 5. Install lightweight Kubernetes (K3s) with 644 kubeconfig
@@ -120,13 +107,13 @@ until [ -f /etc/rancher/k3s/k3s.yaml ]; do
     sleep 2
 done
 
-# Ensure kubectl is accessible in PATH
+# Ensure kubectl is accessible in /usr/local/bin and /usr/bin
 if [ ! -f /usr/local/bin/kubectl ] && [ -f /usr/local/bin/k3s ]; then
-    sudo ln -s /usr/local/bin/k3s /usr/local/bin/kubectl
+    sudo ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl
 fi
-
-# Ensure /usr/local/bin is in PATH for standard sessions
-export PATH="/usr/local/bin:$PATH"
+if [ -f /usr/local/bin/kubectl ] && [ ! -f /usr/bin/kubectl ]; then
+    sudo ln -sf /usr/local/bin/kubectl /usr/bin/kubectl
+fi
 
 # 6. Configure Passwordless Sudo & Kubernetes Credentials for Jenkins
 echo "[Step 6/7] Granting permissions to Jenkins user for K8s image importing..."
@@ -158,7 +145,7 @@ sudo systemctl enable jenkins
 
 # Wait for initial admin password file
 echo "Waiting for Jenkins initialization to complete..."
-for i in {1..30}; do
+for i in {1..35}; do
     if [ -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
         break
     fi
