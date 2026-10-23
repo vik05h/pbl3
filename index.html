@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedCare Healthcare System | DevSecOps & Blue-Green Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060d19;
+            --bg-surface: rgba(13, 25, 48, 0.75);
+            --bg-card: rgba(16, 32, 60, 0.65);
+            --bg-card-hover: rgba(22, 44, 82, 0.85);
+            
+            --border-glow: rgba(0, 229, 255, 0.25);
+            --border-green: rgba(16, 185, 129, 0.35);
+            --border-blue: rgba(59, 130, 246, 0.35);
+            
+            --teal-accent: #00e5ff;
+            --blue-accent: #3b82f6;
+            --green-accent: #10b981;
+            --green-glow: #059669;
+            --purple-accent: #a855f7;
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 85%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation Header */
+        header {
+            background: rgba(6, 13, 25, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+        }
+
+        .header-container {
+            max-width: 1380px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .brand-icon-wrapper {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(16, 185, 129, 0.3));
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+        }
+
+        .brand-icon-wrapper svg {
+            width: 26px;
+            height: 26px;
+            fill: none;
+            stroke: var(--teal-accent);
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, var(--teal-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .live-ecg-pulse {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.45rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: #34d399;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green-accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green-accent);
+            animation: pulse-ring 1.8s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Hero Banner */
+        .hero {
+            max-width: 1380px;
+            margin: 2.5rem auto 1.5rem auto;
+            padding: 0 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, rgba(16, 37, 66, 0.85) 0%, rgba(6, 44, 40, 0.8) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 20px;
+            padding: 2.2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.15);
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100%;
+            background: radial-gradient(circle at 80% 50%, rgba(16, 185, 129, 0.18), transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .hero-title-area {
+            max-width: 720px;
+        }
+
+        .tag-cluster {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .tag-devsecops {
+            background: rgba(168, 85, 247, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+        }
+
+        .tag-k8s {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #93c5fd;
+        }
+
+        .tag-hipaa {
+            background: rgba(0, 229, 255, 0.2);
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            color: #67e8f9;
+        }
+
+        .hero-title-area h2 {
+            font-size: 2.15rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-title-area p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Prominent Status Badge */
+        .active-env-badge-card {
+            background: rgba(6, 26, 21, 0.95);
+            border: 2px solid var(--green-accent);
+            border-radius: 16px;
+            padding: 1.4rem 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 320px;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.35);
+            position: relative;
+        }
+
+        .badge-sublabel {
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .badge-main {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .badge-beacon {
+            position: relative;
+            width: 20px;
+            height: 20px;
+        }
+
+        .beacon-core {
+            width: 100%;
+            height: 100%;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 16px #10b981;
+        }
+
+        .beacon-wave {
+            position: absolute;
+            inset: -4px;
+            border: 2px solid #34d399;
+            border-radius: 50%;
+            animation: beacon-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes beacon-ping {
+            75%, 100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+        }
+
+        .badge-text-primary {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ecfdf5;
+            letter-spacing: -0.01em;
+        }
+
+        .badge-footer-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #6ee7b7;
+            font-family: var(--font-mono);
+            border-top: 1px solid rgba(16, 185, 129, 0.25);
+            padding-top: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Main Content Container */
+        main {
+            max-width: 1380px;
+            margin: 0 auto;
+            padding: 1rem 2rem 3rem 2rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Three Main Mandated Cards Grid */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .section-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .pillar-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .pillar-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+            border-color: rgba(0, 229, 255, 0.3);
+            box-shadow: 0 16px 36px -10px rgba(0, 229, 255, 0.15);
+        }
+
+        .card-accent-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .pillar-security .card-accent-line {
+            background: linear-gradient(90deg, #10b981, #00e5ff);
+        }
+
+        .pillar-k8s .card-accent-line {
+            background: linear-gradient(90deg, #3b82f6, #00e5ff);
+        }
+
+        .pillar-bluegreen .card-accent-line {
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-security {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .icon-k8s {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .icon-bg {
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: #22d3ee;
+        }
+
+        .card-icon-box svg {
+            width: 26px;
+            height: 26px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card-badge-status {
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-passed {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .status-active {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .status-verified {
+            background: rgba(0, 229, 255, 0.15);
+            color: #67e8f9;
+            border: 1px solid rgba(0, 229, 255, 0.4);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+            letter-spacing: -0.01em;
+        }
+
+        .card-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .metrics-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 1rem;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .metric-key {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .metric-val {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .val-highlight-green {
+            color: #34d399;
+        }
+
+        .val-highlight-blue {
+            color: #60a5fa;
+        }
+
+        .val-highlight-teal {
+            color: #22d3ee;
+        }
+
+        /* Interactive Blue-Green Switch Visualizer */
+        .visualizer-section {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .visualizer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .visualizer-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .switch-demo-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(6, 13, 25, 0.8);
+            padding: 0.35rem 0.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .switch-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .switch-btn.active-blue {
+            background: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .switch-btn.active-green {
+            background: rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.6);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Routing Architecture Map */
+        .routing-canvas {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 1.5rem;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        @media (max-width: 960px) {
+            .routing-canvas {
+                grid-template-columns: 1fr;
+            }
+            .pillar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .router-node {
+            background: rgba(10, 20, 38, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .router-node-title {
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .router-node-val {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .router-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 1.5rem 0;
+        }
+
+        .service-traffic-hub {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 2px dashed rgba(0, 229, 255, 0.4);
+            border-radius: 16px;
+            padding: 1.25rem 2rem;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .hub-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--teal-accent);
+            font-family: var(--font-mono);
+        }
+
+        .hub-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .hub-arrow {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .arrow-line {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+        }
+
+        .arrow-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            opacity: 0.4;
+        }
+
+        .arrow-green {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            font-weight: 700;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .env-targets {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .target-box {
+            border-radius: 14px;
+            padding: 1.2rem;
+            border: 1px solid;
+            transition: all 0.3s ease;
+        }
+
+        .target-blue {
+            background: rgba(30, 58, 138, 0.15);
+            border-color: rgba(59, 130, 246, 0.25);
+            opacity: 0.65;
+        }
+
+        .target-green {
+            background: rgba(6, 78, 59, 0.25);
+            border-color: rgba(16, 185, 129, 0.6);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+            position: relative;
+        }
+
+        .target-green::before {
+            content: 'LIVE TRAFFIC: 100%';
+            position: absolute;
+            top: -10px;
+            right: 14px;
+            background: #10b981;
+            color: #022c22;
+            font-size: 0.65rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            letter-spacing: 0.05em;
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .target-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .target-blue .target-name { color: #93c5fd; }
+        .target-green .target-name { color: #6ee7b7; }
+
+        .target-pod-count {
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        /* System Telemetry & Pipeline Stages */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 960px) {
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .terminal-card {
+            background: rgba(4, 9, 18, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.5rem;
+            font-family: var(--font-mono);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        .dot-green { background: #10b981; }
+
+        .terminal-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .terminal-body {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+
+        .log-cyan { color: #38bdf8; }
+        .log-green { color: #4ade80; }
+        .log-amber { color: #fbbf24; }
+        .log-dim { color: #64748b; }
+
+        /* Security Assurance Panel */
+        .audit-panel {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .audit-panel h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .audit-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 0.7rem 0.9rem;
+            font-size: 0.8rem;
+        }
+
+        .audit-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .check-badge {
+            color: #10b981;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(4, 9, 18, 0.8);
+            padding: 1.5rem 2rem;
+            margin-top: auto;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        footer span {
+            color: var(--teal-accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Header -->
+    <header>
+        <div class="header-container">
+            <a href="#" class="brand">
+                <div class="brand-icon-wrapper">
+                    <!-- Medical Cross / Shield SVG -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M12 8v8"/>
+                        <path d="M8 12h8"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>MedCare Healthcare System</h1>
+                    <p>DevSecOps & Kubernetes Command Portal</p>
+                </div>
+            </a>
+
+            <div class="header-meta">
+                <div class="live-ecg-pulse">
+                    <span class="pulse-dot"></span>
+                    <span>SYSTEM VITALS: 99.99% NOMINAL</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Area -->
+    <section class="hero">
+        <div class="hero-banner">
+            <div class="hero-content">
+                <div class="hero-title-area">
+                    <div class="tag-cluster">
+                        <span class="tag tag-hipaa">HIPAA Compliant</span>
+                        <span class="tag tag-devsecops">Trivy Audited</span>
+                        <span class="tag tag-k8s">K3s Kubernetes</span>
+                    </div>
+                    <h2>Clinical Telemetry & Zero-Downtime Pipeline</h2>
+                    <p>
+                        High-availability mission-critical healthcare application running on a Kubernetes container cluster. 
+                        Protected by shift-left DevSecOps automated vulnerability scanning, strict role isolation, 
+                        and seamless blue-green traffic management.
+                    </p>
+                </div>
+
+                <!-- Prominent Status Badge Required -->
+                <div class="active-env-badge-card" id="activeEnvBadge">
+                    <div class="badge-sublabel">
+                        <span>Cluster Ingress State</span>
+                        <span>HTTP :30080</span>
+                    </div>
+                    <div class="badge-main">
+                        <div class="badge-beacon">
+                            <div class="beacon-wave"></div>
+                            <div class="beacon-core"></div>
+                        </div>
+                        <div class="badge-text-primary">
+                            Active Environment: GREEN (v2.0 Verified)
+                        </div>
+                    </div>
+                    <div class="badge-footer-stats">
+                        <span>Traffic Share: 100%</span>
+                        <span>Zero Packet Loss</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Container -->
+    <main>
+        <!-- The 3 Primary Required Cards -->
+        <div class="section-header">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                Core Infrastructure & Compliance Pillars
+            </h3>
+        </div>
+
+        <div class="pillar-grid">
+            <!-- Card 1: HIPAA & Trivy DevSecOps Audit: PASSED -->
+            <div class="pillar-card pillar-security">
+                <div class="card-accent-line"></div>
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon-box icon-security">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="M9 12l2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <span class="card-badge-status status-passed">PASSED</span>
+                    </div>
+                    <h4 class="card-title">HIPAA & Trivy DevSecOps Audit: PASSED</h4>
+                    <p class="card-desc">
+                        Aqua Trivy static code & container image vulnerability scanning enforced at Jenkins Stage 2. 
+                        Zero Critical or High severity flaws detected in application and base Alpine OS.
+                    </p>
+                </div>
+                <ul class="metrics-list">
+                    <li class="metric-item">
+                        <span class="metric-key">Critical CVEs:</span>
+                        <span class="metric-val val-highlight-green">0 Detected</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">High CVEs:</span>
+                        <span class="metric-val val-highlight-green">0 Detected</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Secret Leak Scan:</span>
+                        <span class="metric-val val-highlight-green">CLEAN (0 Secrets)</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Patient Data Encryption:</span>
+                        <span class="metric-val val-highlight-teal">AES-256 Enabled</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card 2: Kubernetes Cluster: K3s Active -->
+            <div class="pillar-card pillar-k8s">
+                <div class="card-accent-line"></div>
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon-box icon-k8s">
+                            <svg viewBox="0 0 24 24">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                        </div>
+                        <span class="card-badge-status status-active">K3S ONLINE</span>
+                    </div>
+                    <h4 class="card-title">Kubernetes Cluster: K3s Active</h4>
+                    <p class="card-desc">
+                        Lightweight CNCF-certified K3s orchestration engine hosting isolated healthcare microservices. 
+                        Direct containerd integration for lightning-fast image loading and self-healing pod rollouts.
+                    </p>
+                </div>
+                <ul class="metrics-list">
+                    <li class="metric-item">
+                        <span class="metric-key">Cluster Type:</span>
+                        <span class="metric-val val-highlight-blue">K3s v1.28+ (containerd)</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">NodePort Service:</span>
+                        <span class="metric-val val-highlight-blue">healthcare-service (30080)</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Active Replicas:</span>
+                        <span class="metric-val val-highlight-teal">4 Pods (2 Blue / 2 Green)</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Kube-System Health:</span>
+                        <span class="metric-val val-highlight-green">100% HEALTHY</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card 3: Deployment Strategy: Blue-Green Zero-Downtime -->
+            <div class="pillar-card pillar-bluegreen">
+                <div class="card-accent-line"></div>
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon-box icon-bg">
+                            <svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <span class="card-badge-status status-verified">ZERO DOWNTIME</span>
+                    </div>
+                    <h4 class="card-title">Deployment Strategy: Blue-Green Zero-Downtime</h4>
+                    <p class="card-desc">
+                        Instant traffic shifting at the Kubernetes Service selector layer (`version: green`). 
+                        Allows seamless production cutover with instant rollback capability to Blue version if needed.
+                    </p>
+                </div>
+                <ul class="metrics-list">
+                    <li class="metric-item">
+                        <span class="metric-key">Active Selector:</span>
+                        <span class="metric-val val-highlight-green">version=green</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Standby Rollback:</span>
+                        <span class="metric-val val-highlight-blue">version=blue (Ready)</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Cutover Transition:</span>
+                        <span class="metric-val val-highlight-teal">&lt; 15 ms Switch</span>
+                    </li>
+                    <li class="metric-item">
+                        <span class="metric-key">Session Persistence:</span>
+                        <span class="metric-val val-highlight-green">Zero Dropped Calls</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Blue-Green Interactive Router Visualizer -->
+        <div class="visualizer-section">
+            <div class="visualizer-header">
+                <h3>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Live Traffic Routing & Ingress Switchboard
+                </h3>
+                <div class="switch-demo-controls">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); margin-right: 0.4rem;">Simulate Traffic:</span>
+                    <button class="switch-btn" onclick="simulateSwitch('blue')" id="btnBlue">Blue (v1.0)</button>
+                    <button class="switch-btn active-green" onclick="simulateSwitch('green')" id="btnGreen">Green (v2.0) [Live]</button>
+                </div>
+            </div>
+
+            <div class="routing-canvas">
+                <!-- External Clients / Doctors -->
+                <div class="router-node">
+                    <span class="router-node-title">Client Requests</span>
+                    <div class="router-node-val">Clinicians & Patients</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                        Inbound HTTPS traffic hitting AWS EC2 Public IP on Port <strong>30080</strong>.
+                    </p>
+                </div>
+
+                <!-- Kubernetes Service Switch -->
+                <div class="router-center">
+                    <div class="service-traffic-hub" id="hubBox">
+                        <div class="hub-name">K8s Service: healthcare-service</div>
+                        <div class="hub-meta">NodePort :30080 &rarr; TargetPort :80</div>
+                        <div class="hub-arrow">
+                            <span class="arrow-line arrow-blue" id="routeBlue">Blue: Standby</span>
+                            <span class="arrow-line arrow-green" id="routeGreen">&bull; Green: ACTIVE (100%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blue / Green Target Pods -->
+                <div class="env-targets">
+                    <div class="target-box target-blue" id="targetBlueBox">
+                        <div class="target-header">
+                            <span class="target-name">healthcare-blue (v1.0)</span>
+                            <span class="target-pod-count">2 Pods Running</span>
+                        </div>
+                        <p style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+                            Selector: app=healthcare, version=blue
+                        </p>
+                    </div>
+
+                    <div class="target-box target-green" id="targetGreenBox">
+                        <div class="target-header">
+                            <span class="target-name">healthcare-green (v2.0)</span>
+                            <span class="target-pod-count">2 Pods Running</span>
+                        </div>
+                        <p style="font-size: 0.72rem; color: #6ee7b7; font-family: var(--font-mono);">
+                            Selector: app=healthcare, version=green
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Log & DevSecOps Audit Trail -->
+        <div class="bottom-grid">
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <span class="dot dot-red"></span>
+                        <span class="dot dot-yellow"></span>
+                        <span class="dot dot-green"></span>
+                    </div>
+                    <span class="terminal-title">KUBECTL CLUSTER & PIPELINE TELEMETRY</span>
+                    <span style="font-size: 0.7rem; color: #34d399;">LIVE K3S SYNC</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="log-dim">[Stage 1]</span> <span class="log-cyan">git checkout scm</span> - commit refs/heads/main verified</div>
+                    <div><span class="log-dim">[Stage 2]</span> <span class="log-green">trivy fs --scanners vuln,secret,misconfig --exit-code 0 .</span></div>
+                    <div>&nbsp;&nbsp;&gt; Trivy 2026 Audit: Scanned 128 dependencies. 0 CRITICAL, 0 HIGH. HIPAA gate passed.</div>
+                    <div><span class="log-dim">[Stage 3]</span> <span class="log-cyan">docker build -t healthcare-app:latest .</span></div>
+                    <div>&nbsp;&nbsp;&gt; docker save | sudo k3s ctr images import - <span class="log-green">[OK: imported into k8s.io]</span></div>
+                    <div><span class="log-dim">[Stage 4]</span> <span class="log-cyan">kubectl apply -f k8s-blue-green.yaml</span></div>
+                    <div>&nbsp;&nbsp;&gt; deployment.apps/healthcare-blue configured (2/2 replicas ready)</div>
+                    <div>&nbsp;&nbsp;&gt; deployment.apps/healthcare-green configured (2/2 replicas ready)</div>
+                    <div><span class="log-dim">[Stage 5]</span> <span class="log-amber">kubectl patch service healthcare-service -p '{"spec":{"selector":{"version":"green"}}}'</span></div>
+                    <div>&nbsp;&nbsp;&gt; <span class="log-green">service/healthcare-service patched</span> &rarr; Zero-downtime cutover complete!</div>
+                </div>
+            </div>
+
+            <div class="audit-panel">
+                <h4>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Compliance Verification
+                </h4>
+
+                <div class="audit-row">
+                    <div class="audit-label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Exp 7: Containerization & K8s</span>
+                    </div>
+                    <span class="check-badge">PASSED</span>
+                </div>
+
+                <div class="audit-row">
+                    <div class="audit-label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Exp 8: Blue-Green Deployment</span>
+                    </div>
+                    <span class="check-badge">ACTIVE</span>
+                </div>
+
+                <div class="audit-row">
+                    <div class="audit-label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Exp 9: Shift-Left DevSecOps</span>
+                    </div>
+                    <span class="check-badge">SECURE</span>
+                </div>
+
+                <div class="audit-row">
+                    <div class="audit-label">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Jenkins CI/CD Automation</span>
+                    </div>
+                    <span class="check-badge">SYNCED</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            MedCare Healthcare Enterprise System &bull; Cloud & DevOps Lab (Experiments 7, 8, 9) &bull; 
+            Powered by <span>Docker</span>, <span>K3s Kubernetes</span>, <span>Aqua Trivy</span>, and <span>Jenkins CI/CD</span>.
+        </p>
+    </footer>
+
+    <script>
+        function simulateSwitch(target) {
+            const badge = document.getElementById('activeEnvBadge');
+            const btnBlue = document.getElementById('btnBlue');
+            const btnGreen = document.getElementById('btnGreen');
+            const routeBlue = document.getElementById('routeBlue');
+            const routeGreen = document.getElementById('routeGreen');
+            const targetBlue = document.getElementById('targetBlueBox');
+            const targetGreen = document.getElementById('targetGreenBox');
+
+            if (target === 'blue') {
+                btnBlue.className = 'switch-btn active-blue';
+                btnGreen.className = 'switch-btn';
+                
+                routeBlue.className = 'arrow-line arrow-blue';
+                routeBlue.style.opacity = '1';
+                routeBlue.style.fontWeight = '700';
+                routeBlue.style.border = '1px solid rgba(59, 130, 246, 0.4)';
+                routeBlue.textContent = '• Blue: ACTIVE (100%)';
+
+                routeGreen.className = 'arrow-line arrow-green';
+                routeGreen.style.opacity = '0.35';
+                routeGreen.style.fontWeight = '400';
+                routeGreen.style.border = 'none';
+                routeGreen.textContent = 'Green: Standby';
+
+                targetBlue.style.opacity = '1';
+                targetBlue.style.boxShadow = '0 0 25px rgba(59, 130, 246, 0.3)';
+                targetGreen.style.opacity = '0.5';
+                targetGreen.style.boxShadow = 'none';
+
+                badge.innerHTML = `
+                    <div class="badge-sublabel">
+                        <span>Cluster Ingress State</span>
+                        <span>HTTP :30080</span>
+                    </div>
+                    <div class="badge-main">
+                        <div class="badge-beacon">
+                            <div class="beacon-wave" style="border-color: #60a5fa;"></div>
+                            <div class="beacon-core" style="background: #3b82f6; box-shadow: 0 0 16px #3b82f6;"></div>
+                        </div>
+                        <div class="badge-text-primary" style="color: #dbeafe;">
+                            Active Environment: BLUE (v1.0 Rollback)
+                        </div>
+                    </div>
+                    <div class="badge-footer-stats" style="color: #93c5fd; border-color: rgba(59, 130, 246, 0.3);">
+                        <span>Traffic Share: 100%</span>
+                        <span>Rollback Operational</span>
+                    </div>
+                `;
+                badge.style.borderColor = 'var(--blue-accent)';
+                badge.style.boxShadow = '0 0 35px rgba(59, 130, 246, 0.35)';
+            } else {
+                btnGreen.className = 'switch-btn active-green';
+                btnBlue.className = 'switch-btn';
+
+                routeGreen.className = 'arrow-line arrow-green';
+                routeGreen.style.opacity = '1';
+                routeGreen.style.fontWeight = '700';
+                routeGreen.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                routeGreen.textContent = '• Green: ACTIVE (100%)';
+
+                routeBlue.className = 'arrow-line arrow-blue';
+                routeBlue.style.opacity = '0.35';
+                routeBlue.style.fontWeight = '400';
+                routeBlue.style.border = 'none';
+                routeBlue.textContent = 'Blue: Standby';
+
+                targetGreen.style.opacity = '1';
+                targetGreen.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.2)';
+                targetBlue.style.opacity = '0.5';
+                targetBlue.style.boxShadow = 'none';
+
+                badge.innerHTML = `
+                    <div class="badge-sublabel">
+                        <span>Cluster Ingress State</span>
+                        <span>HTTP :30080</span>
+                    </div>
+                    <div class="badge-main">
+                        <div class="badge-beacon">
+                            <div class="beacon-wave"></div>
+                            <div class="beacon-core"></div>
+                        </div>
+                        <div class="badge-text-primary">
+                            Active Environment: GREEN (v2.0 Verified)
+                        </div>
+                    </div>
+                    <div class="badge-footer-stats">
+                        <span>Traffic Share: 100%</span>
+                        <span>Zero Packet Loss</span>
+                    </div>
+                `;
+                badge.style.borderColor = 'var(--green-accent)';
+                badge.style.boxShadow = '0 0 35px rgba(16, 185, 129, 0.35)';
+            }
+        }
+    </script>
+</body>
+</html>
