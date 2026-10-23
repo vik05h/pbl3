@@ -1,10 +1,35 @@
-# Security: Ignore AWS private keys
+# ==============================================================================
+# Security & Secret Protection (HIPAA DevSecOps Compliance)
+# ==============================================================================
 *.pem
 *.ppk
+*.key
+id_rsa*
 labsuser.pem
+/var/lib/jenkins/.kube/config
+kubeconfig
+*.kubeconfig
 
-# OS / Editor temporary files
+# Environment variables & secrets
+.env
+*.env
+.env.*
+
+# ==============================================================================
+# Operating System & IDE Artifacts
+# ==============================================================================
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
 *.swp
 *~
+
+# ==============================================================================
+# Logs & Build Output
+# ==============================================================================
+*.log
+node_modules/
+dist/
+build/
+scratch/
