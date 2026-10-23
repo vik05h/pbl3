@@ -1,64 +1,113 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # MedCare DevSecOps & Kubernetes Lab Automation Setup Script
-# Target OS: Ubuntu 24.04 LTS (AWS EC2)
+# Supported OS: Amazon Linux 2023 (ec2-user) & Ubuntu 24.04 LTS (ubuntu)
 # Lab Experiments: Exp 7 (Docker + K8s), Exp 8 (Blue-Green), Exp 9 (DevSecOps)
 # ==============================================================================
 
 set -euo pipefail
 
-export DEBIAN_FRONTEND=noninteractive
-
 echo "===================================================================="
 echo " Starting Automated DevSecOps & K3s Kubernetes Setup for EC2"
 echo "===================================================================="
 
+# Detect OS Distribution
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS_ID="${ID:-linux}"
+else
+    OS_ID="linux"
+fi
+
+echo "[OS Detection] Detected Operating System: ${OS_ID}"
+
 # 1. Update system packages and install prerequisites
-echo "[Step 1/7] Updating package index and installing core utilities..."
-sudo apt-get update -y
-sudo apt-get install -y \
-    curl \
-    wget \
-    gnupg \
-    lsb-release \
-    apt-transport-https \
-    ca-certificates \
-    git \
-    openjdk-17-jdk \
-    docker.io
+echo "[Step 1/7] Updating package repositories and installing core packages..."
+if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
+    # Amazon Linux 2023 / RHEL family
+    sudo dnf update -y
+    sudo dnf install -y \
+        curl \
+        wget \
+        git \
+        tar \
+        gzip \
+        docker \
+        java-17-amazon-corretto-devel || sudo dnf install -y java-17-openjdk-devel
+elif [[ "${OS_ID}" =~ (ubuntu|debian) ]]; then
+    # Ubuntu / Debian family
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update -y
+    sudo apt-get install -y \
+        curl \
+        wget \
+        gnupg \
+        lsb-release \
+        apt-transport-https \
+        ca-certificates \
+        git \
+        openjdk-17-jdk \
+        docker.io
+fi
 
 # 2. Configure Docker daemon & permissions
 echo "[Step 2/7] Configuring Docker service and user permissions..."
 sudo systemctl enable docker
 sudo systemctl start docker
 
-# Add ubuntu user to docker group if present
-if id "ubuntu" &>/dev/null; then
-    sudo usermod -aG docker ubuntu
-fi
+# Add login users to docker group
+for u in "ec2-user" "ubuntu"; do
+    if id "$u" &>/dev/null; then
+        sudo usermod -aG docker "$u"
+        echo "Added user '$u' to docker group."
+    fi
+done
 
 # 3. Install Jenkins LTS
 echo "[Step 3/7] Installing Jenkins LTS..."
-sudo mkdir -p /usr/share/keyrings
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
-
-sudo apt-get update -y
-sudo apt-get install -y jenkins
+if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
+    sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+    sudo dnf upgrade -y
+    sudo dnf install -y jenkins
+elif [[ "${OS_ID}" =~ (ubuntu|debian) ]]; then
+    sudo mkdir -p /usr/share/keyrings
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y jenkins
+fi
 
 # Add jenkins user to docker group
 sudo usermod -aG docker jenkins
 
 # 4. Install Aqua Security Trivy (Vulnerability, Secret, and Misconfig Scanner)
 echo "[Step 4/7] Installing Aqua Security Trivy..."
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/trivy.gpg
-echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-
-sudo apt-get update -y
-if ! sudo apt-get install -y trivy; then
-    echo "Apt package repository fallback: Installing Trivy via official install script..."
-    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+if command -v trivy &>/dev/null; then
+    echo "Trivy is already installed: $(trivy --version | head -n 1)"
+else
+    if [[ "${OS_ID}" =~ (amzn|rhel|centos|fedora) ]]; then
+        cat << 'EOF' | sudo tee /etc/yum.repos.d/trivy.repo
+[trivy]
+name=Trivy repository
+baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://aquasecurity.github.io/trivy-repo/rpm/public.key
+EOF
+        sudo dnf install -y trivy || {
+            echo "Falling back to standalone Trivy installer..."
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+        }
+    else
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/trivy.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update -y && sudo apt-get install -y trivy || {
+            echo "Falling back to standalone Trivy installer..."
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+        }
+    fi
 fi
 
 # 5. Install lightweight Kubernetes (K3s) with 644 kubeconfig
@@ -76,6 +125,9 @@ if [ ! -f /usr/local/bin/kubectl ] && [ -f /usr/local/bin/k3s ]; then
     sudo ln -s /usr/local/bin/k3s /usr/local/bin/kubectl
 fi
 
+# Ensure /usr/local/bin is in PATH for standard sessions
+export PATH="/usr/local/bin:$PATH"
+
 # 6. Configure Passwordless Sudo & Kubernetes Credentials for Jenkins
 echo "[Step 6/7] Granting permissions to Jenkins user for K8s image importing..."
 echo "jenkins ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/jenkins
@@ -87,13 +139,16 @@ sudo cp /etc/rancher/k3s/k3s.yaml /var/lib/jenkins/.kube/config
 sudo chown -R jenkins:jenkins /var/lib/jenkins/.kube
 sudo chmod 600 /var/lib/jenkins/.kube/config
 
-# Setup Kubeconfig for ubuntu user as well
-if [ -d "/home/ubuntu" ]; then
-    mkdir -p /home/ubuntu/.kube
-    sudo cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
-    sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube
-    chmod 600 /home/ubuntu/.kube/config
-fi
+# Setup Kubeconfig for interactive users (ec2-user or ubuntu)
+for u in "ec2-user" "ubuntu"; do
+    if [ -d "/home/$u" ]; then
+        mkdir -p "/home/$u/.kube"
+        sudo cp /etc/rancher/k3s/k3s.yaml "/home/$u/.kube/config"
+        sudo chown -R "$u:$u" "/home/$u/.kube"
+        chmod 600 "/home/$u/.kube/config"
+        echo "Configured ~/.kube/config for $u."
+    fi
+done
 
 # 7. Restart Jenkins service to apply group & path updates
 echo "[Step 7/7] Restarting Jenkins service..."
@@ -102,7 +157,7 @@ sudo systemctl restart jenkins
 sudo systemctl enable jenkins
 
 # Wait for initial admin password file
-echo "Waiting for Jenkins to finish initialization..."
+echo "Waiting for Jenkins initialization to complete..."
 for i in {1..30}; do
     if [ -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
         break
